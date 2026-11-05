@@ -22,3 +22,6 @@ const float CARD_Y = 20.f;
 const float CARD_W = 90.f;
 const float CARD_H = 80.f;
 const float CARD_GAP = 110.f; // distance from one card to the next
+
+// sun cost of each card: 0 = Sunflower, 1 = Peashooter, 2 = Wallnut
+const int CARD_COSTS[NUM_CARDS] = {50, 100, 50};

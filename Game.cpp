@@ -1,5 +1,9 @@
 #include "Game.h"
 #include "Constants.h"
+#include "Sunflower.h"
+#include "Peashooter.h"
+#include "Wallnut.h"
+#include "NormalZombie.h"
 #include <optional>
 #include <iostream>
 #include <string>
@@ -14,6 +18,25 @@ Game::Game()
     // load the font once, here in the constructor
     if (!font.openFromFile("C:/Windows/Fonts/arial.ttf"))
         std::cout << "Could not load font\n";
+
+    // load every picture once; if a file is missing the game uses a shape instead
+    hasZombieTex = zombieTex.loadFromFile("zombie.png");
+    if (!hasZombieTex) std::cout << "zombie.png not found, using a shape\n";
+    hasSunflowerTex = sunflowerTex.loadFromFile("sunflower.png");
+    if (!hasSunflowerTex) std::cout << "sunflower.png not found, using a shape\n";
+    hasPeashooterTex = peashooterTex.loadFromFile("peashooter.png");
+    if (!hasPeashooterTex) std::cout << "peashooter.png not found, using a shape\n";
+    hasWallnutTex = wallnutTex.loadFromFile("wallnut.png");
+    if (!hasWallnutTex) std::cout << "wallnut.png not found, using a shape\n";
+
+    // one test zombie in the middle row, starting at the right edge of the lawn
+    zombies.push_back(new NormalZombie(2, LAWN_X + COLS * CELL_W,
+                                       hasZombieTex ? &zombieTex : nullptr));
+}
+
+Game::~Game() {
+    for (Plant* p : plants) delete p;
+    for (Zombie* z : zombies) delete z;
 }
 
 void Game::run() {
@@ -49,18 +72,47 @@ void Game::handleEvents() {
                 if (mx >= LAWN_X && my >= LAWN_Y) {
                     int col = static_cast<int>((mx - LAWN_X) / CELL_W);
                     int row = static_cast<int>((my - LAWN_Y) / CELL_H);
-                    if (row < ROWS && col < COLS) {
-                        std::cout << "Clicked row " << row
-                                  << ", col " << col << "\n";
-                    }
+                    if (row < ROWS && col < COLS)
+                        placePlant(row, col);
                 }
             }
         }
     }
 }
 
+void Game::placePlant(int row, int col) {
+    // 1) a card must be selected
+    if (selectedCard < 0) return;
+
+    // 2) the cell must be empty
+    for (Plant* p : plants) {
+        if (p->getRow() == row && p->getCol() == col)
+            return;
+    }
+
+    // 3) there must be enough sun
+    int cost = CARD_COSTS[selectedCard];
+    if (sun < cost) return;
+
+    // 4) make the plant that matches the selected card
+    Plant* newPlant = nullptr;
+    if (selectedCard == 0)
+        newPlant = new Sunflower(row, col, hasSunflowerTex ? &sunflowerTex : nullptr);
+    else if (selectedCard == 1)
+        newPlant = new Peashooter(row, col, hasPeashooterTex ? &peashooterTex : nullptr);
+    else if (selectedCard == 2)
+        newPlant = new Wallnut(row, col, hasWallnutTex ? &wallnutTex : nullptr);
+
+    if (newPlant) {
+        plants.push_back(newPlant);
+        sun -= cost;
+        selectedCard = -1;   // one click = one plant
+    }
+}
+
 void Game::update(float dt) {
-    // empty for now
+    for (Plant* p : plants) p->update(dt);
+    for (Zombie* z : zombies) z->update(dt);
 }
 
 void Game::drawLawn() {
@@ -94,7 +146,6 @@ void Game::drawTopBar() {
 
     // the three plant cards
     const char* names[NUM_CARDS] = {"Sunflower", "Peashooter", "Wallnut"};
-    int costs[NUM_CARDS] = {50, 100, 50};
 
     for (int i = 0; i < NUM_CARDS; i++) {
         float cx = CARD_X + i * CARD_GAP;
@@ -110,7 +161,7 @@ void Game::drawTopBar() {
         }
         window.draw(card);
 
-        sf::Text label(font, std::string(names[i]) + "\n" + std::to_string(costs[i]), 15);
+        sf::Text label(font, std::string(names[i]) + "\n" + std::to_string(CARD_COSTS[i]), 15);
         label.setFillColor(sf::Color::Black);
         label.setPosition({cx + 6.f, CARD_Y + 10.f});
         window.draw(label);
@@ -120,6 +171,11 @@ void Game::drawTopBar() {
 void Game::draw() {
     window.clear(sf::Color(30, 110, 30));
     drawLawn();
+
+    // plants and zombies go on top of the lawn but under the top bar
+    for (Plant* p : plants) p->draw(window);
+    for (Zombie* z : zombies) z->draw(window);
+
     drawTopBar();
     window.display();
 }
