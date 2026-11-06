@@ -3,13 +3,25 @@
 
 class Sunflower : public Plant {
     static constexpr int MAX_HEALTH = 100;
+    float sunTimer = 6.f;   // seconds until it makes sun
 
 public:
     Sunflower(int row, int col, const sf::Texture* texture = nullptr)
         : Plant(row, col, 50, MAX_HEALTH, texture) {}
 
-    // Week 4: this is where it will make sun on a timer
-    void update(float /*dt*/) override {}
+    // the timer counts down every frame
+    void update(float dt) override {
+        if (sunTimer > 0.f) sunTimer -= dt;
+    }
+
+    // true once every SUN_INTERVAL seconds: Game then creates a sun drop
+    bool wantsToProduceSun() override {
+        if (sunTimer <= 0.f) {
+            sunTimer = SUN_INTERVAL;
+            return true;
+        }
+        return false;
+    }
 
     void draw(sf::RenderWindow& window) override {
         // picture if we have one, otherwise a yellow circle

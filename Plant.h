@@ -14,9 +14,10 @@ public:
         : GameObject(LAWN_X + col * CELL_W, LAWN_Y + row * CELL_H, health, texture),
           row(row), col(col), cost(cost) {}
 
-    // Game asks every plant: "do you want to shoot now?"
-    // Most plants never shoot, only Peashooter overrides this.
+    // Game asks every plant these two questions each frame.
+    // Most plants answer "no"; Peashooter overrides the first, Sunflower the second.
     virtual bool wantsToShoot(bool /*zombieInRow*/) { return false; }
+    virtual bool wantsToProduceSun() { return false; }
 
     int getRow() const { return row; }
     int getCol() const { return col; }
