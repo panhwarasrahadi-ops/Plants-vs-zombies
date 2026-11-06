@@ -1,13 +1,16 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <vector>
+#include <string>
+#include <random>
 #include "Plant.h"
 #include "Zombie.h"
+#include "Projectile.h"
 
 class Game {
 public:
     Game();
-    ~Game();                               // frees all plants and zombies
+    ~Game();                               // frees all plants, zombies and peas
     Game(const Game&) = delete;            // a Game must not be copied
     Game& operator=(const Game&) = delete; // (it owns raw pointers)
 
@@ -20,6 +23,8 @@ private:
     void drawLawn();
     void drawTopBar();
     void placePlant(int row, int col);
+    void removePlant(int row, int col);
+    void spawnZombie();
 
     sf::RenderWindow window;
     sf::Font font;
@@ -33,6 +38,13 @@ private:
     bool hasPeashooterTex = false;
     bool hasWallnutTex = false;
 
-    std::vector<Plant*> plants;     // Plant* so Sunflower, Peashooter and Wallnut fit in one list
+    std::vector<Plant*> plants;          // Plant* so different plant types fit in one list
     std::vector<Zombie*> zombies;
+    std::vector<Projectile*> projectiles;
+
+    float spawnTimer = 3.f;              // seconds until the next zombie appears
+    std::mt19937 rng{std::random_device{}()};
+
+    std::string message;                 // short message shown in the top bar
+    float messageTimer = 0.f;
 };

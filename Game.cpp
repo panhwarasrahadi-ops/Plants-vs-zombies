@@ -8,6 +8,19 @@
 #include <iostream>
 #include <string>
 
+// deletes every dead object in a list and removes it from the list
+template <typename T>
+static void removeDead(std::vector<T*>& list) {
+    for (size_t i = 0; i < list.size(); ) {
+        if (list[i]->isDead()) {
+            delete list[i];
+            list.erase(list.begin() + i);
+        } else {
+            i++;
+        }
+    }
+}
+
 Game::Game()
     : window(sf::VideoMode({WINDOW_W, WINDOW_H}), "Plants vs Zombies"),
       sun(150),
@@ -28,15 +41,12 @@ Game::Game()
     if (!hasPeashooterTex) std::cout << "peashooter.png not found, using a shape\n";
     hasWallnutTex = wallnutTex.loadFromFile("wallnut.png");
     if (!hasWallnutTex) std::cout << "wallnut.png not found, using a shape\n";
-
-    // one test zombie in the middle row, starting at the right edge of the lawn
-    zombies.push_back(new NormalZombie(2, LAWN_X + COLS * CELL_W,
-                                       hasZombieTex ? &zombieTex : nullptr));
 }
 
 Game::~Game() {
     for (Plant* p : plants) delete p;
     for (Zombie* z : zombies) delete z;
+    for (Projectile* pea : projectiles) delete pea;
 }
 
 void Game::run() {
@@ -55,10 +65,21 @@ void Game::handleEvents() {
             window.close();
 
         if (const auto* click = event->getIf<sf::Event::MouseButtonPressed>()) {
-            if (click->button == sf::Mouse::Button::Left) {
-                float mx = static_cast<float>(click->position.x);
-                float my = static_cast<float>(click->position.y);
+            float mx = static_cast<float>(click->position.x);
+            float my = static_cast<float>(click->position.y);
 
+            // turn the click into a lawn row and column (-1 means "not on the lawn")
+            int row = -1, col = -1;
+            if (mx >= LAWN_X && my >= LAWN_Y) {
+                int c = static_cast<int>((mx - LAWN_X) / CELL_W);
+                int r = static_cast<int>((my - LAWN_Y) / CELL_H);
+                if (r < ROWS && c < COLS) {
+                    row = r;
+                    col = c;
+                }
+            }
+
+            if (click->button == sf::Mouse::Button::Left) {
                 // 1) did the player click a plant card?
                 for (int i = 0; i < NUM_CARDS; i++) {
                     float cx = CARD_X + i * CARD_GAP;
@@ -67,14 +88,14 @@ void Game::handleEvents() {
                         selectedCard = i;
                     }
                 }
-
-                // 2) did the player click the lawn? turn the click into row and column
-                if (mx >= LAWN_X && my >= LAWN_Y) {
-                    int col = static_cast<int>((mx - LAWN_X) / CELL_W);
-                    int row = static_cast<int>((my - LAWN_Y) / CELL_H);
-                    if (row < ROWS && col < COLS)
-                        placePlant(row, col);
-                }
+                // 2) did the player click the lawn?
+                if (row >= 0)
+                    placePlant(row, col);
+            }
+            else if (click->button == sf::Mouse::Button::Right) {
+                // right click removes the plant in that cell
+                if (row >= 0)
+                    removePlant(row, col);
             }
         }
     }
@@ -92,7 +113,11 @@ void Game::placePlant(int row, int col) {
 
     // 3) there must be enough sun
     int cost = CARD_COSTS[selectedCard];
-    if (sun < cost) return;
+    if (sun < cost) {
+        message = "Not enough sun!";
+        messageTimer = 2.f;
+        return;
+    }
 
     // 4) make the plant that matches the selected card
     Plant* newPlant = nullptr;
@@ -110,9 +135,92 @@ void Game::placePlant(int row, int col) {
     }
 }
 
+void Game::removePlant(int row, int col) {
+    for (Plant* p : plants) {
+        if (p->getRow() == row && p->getCol() == col)
+            p->takeDamage(p->getHealth());   // it is now dead, update() removes it
+    }
+}
+
+void Game::spawnZombie() {
+    std::uniform_int_distribution<int> pickRow(0, ROWS - 1);
+    int row = pickRow(rng);
+    zombies.push_back(new NormalZombie(row, LAWN_X + COLS * CELL_W,
+                                       hasZombieTex ? &zombieTex : nullptr));
+}
+
 void Game::update(float dt) {
-    for (Plant* p : plants) p->update(dt);
-    for (Zombie* z : zombies) z->update(dt);
+    // message timer
+    if (messageTimer > 0.f) messageTimer -= dt;
+
+    // new zombie every few seconds
+    spawnTimer -= dt;
+    if (spawnTimer <= 0.f) {
+        spawnZombie();
+        spawnTimer = SPAWN_INTERVAL;
+    }
+
+    // plants: update, and let peashooters shoot when a zombie is in their row
+    for (Plant* p : plants) {
+        p->update(dt);
+
+        bool zombieInRow = false;
+        for (Zombie* z : zombies) {
+            if (z->getRow() == p->getRow() &&
+                z->getX() > p->getX() && z->getX() < WINDOW_W) {
+                zombieInRow = true;
+                break;
+            }
+        }
+        if (p->wantsToShoot(zombieInRow))
+            projectiles.push_back(new Projectile(p->getRow(), p->getX() + 65.f,
+                                                 PEA_SPEED, PEA_DAMAGE));
+    }
+
+    // zombies: stop and eat a plant that is in front of them, otherwise walk
+    for (Zombie* z : zombies) {
+        Plant* target = nullptr;
+        for (Plant* p : plants) {
+            if (p->getRow() == z->getRow() && !p->isDead() &&
+                z->getBounds().findIntersection(p->getBounds()).has_value()) {
+                target = p;
+                break;
+            }
+        }
+
+        z->setEating(target != nullptr);
+        z->update(dt);
+
+        if (target && z->readyToBite(dt))
+            target->takeDamage(BITE_DAMAGE);
+
+        // walked off the left side of the screen
+        if (z->getX() < -CELL_W)
+            z->takeDamage(z->getHealth());
+    }
+
+    // peas: fly right and hurt the first zombie they touch
+    for (Projectile* pea : projectiles) {
+        pea->update(dt);
+
+        for (Zombie* z : zombies) {
+            if (z->isDead()) continue;
+            if (z->getRow() == pea->getRow() &&
+                pea->getBounds().findIntersection(z->getBounds()).has_value()) {
+                z->takeDamage(pea->getDamage());
+                pea->takeDamage(1);   // the pea is used up
+                break;
+            }
+        }
+
+        if (pea->getX() > WINDOW_W)
+            pea->takeDamage(1);       // flew off the screen
+    }
+
+    // remove everything that died this frame
+    removeDead(plants);
+    removeDead(zombies);
+    removeDead(projectiles);
 }
 
 void Game::drawLawn() {
@@ -166,15 +274,24 @@ void Game::drawTopBar() {
         label.setPosition({cx + 6.f, CARD_Y + 10.f});
         window.draw(label);
     }
+
+    // short message, for example "Not enough sun!"
+    if (messageTimer > 0.f) {
+        sf::Text msg(font, message, 26);
+        msg.setFillColor(sf::Color(255, 120, 120));
+        msg.setPosition({520.f, 45.f});
+        window.draw(msg);
+    }
 }
 
 void Game::draw() {
     window.clear(sf::Color(30, 110, 30));
     drawLawn();
 
-    // plants and zombies go on top of the lawn but under the top bar
+    // plants, zombies and peas go on top of the lawn but under the top bar
     for (Plant* p : plants) p->draw(window);
     for (Zombie* z : zombies) z->draw(window);
+    for (Projectile* pea : projectiles) pea->draw(window);
 
     drawTopBar();
     window.display();

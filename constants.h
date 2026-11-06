@@ -25,3 +25,11 @@ const float CARD_GAP = 110.f; // distance from one card to the next
 
 // sun cost of each card: 0 = Sunflower, 1 = Peashooter, 2 = Wallnut
 const int CARD_COSTS[NUM_CARDS] = {50, 100, 50};
+
+// gameplay numbers (easy to change in one place)
+const float PEA_SPEED = 300.f;       // pixels per second
+const int PEA_DAMAGE = 20;
+const float SHOOT_COOLDOWN = 1.5f;   // seconds between peashooter shots
+const int BITE_DAMAGE = 20;          // damage a zombie does to a plant per bite
+const float BITE_INTERVAL = 1.0f;    // seconds between bites
+const float SPAWN_INTERVAL = 8.f;    // seconds between new zombies

@@ -9,9 +9,10 @@ public:
     NormalZombie(int row, float startX, const sf::Texture* texture = nullptr)
         : Zombie(row, startX, 30.f, MAX_HEALTH, texture) {}
 
-    // walks left: distance = speed * time
+    // walks left (distance = speed * time), but stops while it is eating
     void update(float dt) override {
-        x -= speed * dt;
+        if (!eating)
+            x -= speed * dt;
     }
 
     void draw(sf::RenderWindow& window) override {

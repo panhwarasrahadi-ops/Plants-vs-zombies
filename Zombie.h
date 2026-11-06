@@ -7,7 +7,9 @@
 class Zombie : public GameObject {
 protected:
     int row;
-    float speed;    // pixels per second, moving left
+    float speed;            // pixels per second, moving left
+    bool eating = false;    // true while it is chewing on a plant
+    float biteTimer = 0.f;
 
 public:
     Zombie(int row, float startX, float speed, int health,
@@ -17,4 +19,20 @@ public:
 
     int getRow() const { return row; }
     float getSpeed() const { return speed; }
+
+    void setEating(bool e) {
+        eating = e;
+        if (!e) biteTimer = 0.f;
+    }
+    bool isEating() const { return eating; }
+
+    // returns true once every BITE_INTERVAL seconds while eating
+    bool readyToBite(float dt) {
+        biteTimer += dt;
+        if (biteTimer >= BITE_INTERVAL) {
+            biteTimer -= BITE_INTERVAL;
+            return true;
+        }
+        return false;
+    }
 };
