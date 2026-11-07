@@ -7,7 +7,7 @@ class NormalZombie : public Zombie {
 public:
     // startX is where it appears on the screen (usually the right edge of the lawn)
     NormalZombie(int row, float startX, const sf::Texture* texture = nullptr)
-        : Zombie(row, startX, 30.f, MAX_HEALTH, texture) {}
+        : Zombie(row, startX, ZOMBIE_SPEED, MAX_HEALTH, texture) {}
 
     // walks left (distance = speed * time), but stops while it is eating
     void update(float dt) override {

@@ -7,7 +7,7 @@ class ConeheadZombie : public Zombie {
 
 public:
     ConeheadZombie(int row, float startX, const sf::Texture* texture = nullptr)
-        : Zombie(row, startX, 30.f, MAX_HEALTH, texture) {}
+        : Zombie(row, startX, ZOMBIE_SPEED, MAX_HEALTH, texture) {}
 
     // walks left, but stops while it is eating
     void update(float dt) override {

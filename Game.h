@@ -44,13 +44,15 @@ private:
     State state = State::Menu;
 
     // pictures, loaded once in the constructor and shared by all objects
-    sf::Texture zombieTex, coneheadTex, sunflowerTex, peashooterTex, wallnutTex, sunTex;
+    sf::Texture zombieTex, coneheadTex, sunflowerTex, peashooterTex, wallnutTex, sunTex,
+                lipstickTex;
     bool hasZombieTex = false;
     bool hasConeheadTex = false;
     bool hasSunflowerTex = false;
     bool hasPeashooterTex = false;
     bool hasWallnutTex = false;
     bool hasSunTex = false;
+    bool hasLipstickTex = false;
 
     std::vector<Plant*> plants;          // Plant* so different plant types fit in one list
     std::vector<Zombie*> zombies;        // Zombie* so Normal and Conehead fit in one list
@@ -58,6 +60,7 @@ private:
     std::vector<SunDrop*> sunDrops;
 
     float spawnTimer = 5.f;              // seconds until the next zombie appears
+    float skyTimer = 4.f;                // seconds until the next sun falls from the sky
     int zombiesSpawned = 0;
     int zombiesKilled = 0;
     std::mt19937 rng{std::random_device{}()};

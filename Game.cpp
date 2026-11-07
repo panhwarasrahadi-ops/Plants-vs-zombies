@@ -46,6 +46,8 @@ Game::Game()
     if (!hasWallnutTex) std::cout << "wallnut.png not found, using a shape\n";
     hasSunTex = sunTex.loadFromFile("sun.png");
     if (!hasSunTex) std::cout << "sun.png not found, using a shape\n";
+    hasLipstickTex = lipstickTex.loadFromFile("lipstick.png");
+    if (!hasLipstickTex) std::cout << "lipstick.png not found, using a shape\n";
 }
 
 Game::~Game() {
@@ -251,11 +253,14 @@ void Game::update(float dt) {
         }
         if (p->wantsToShoot(zombieInRow))
             projectiles.push_back(new Projectile(p->getRow(), p->getX() + 65.f,
-                                                 PEA_SPEED, PEA_DAMAGE));
+                                                 PEA_SPEED, PEA_DAMAGE,
+                                                 hasLipstickTex ? &lipstickTex : nullptr));
 
         if (p->wantsToProduceSun())
-            sunDrops.push_back(new SunDrop(p->getX() + 22.f, p->getY() + 20.f,
-                                           hasSunTex ? &sunTex : nullptr));
+            // the sun falls straight down into the sunflower's own cell
+            sunDrops.push_back(new SunDrop(p->getX() + 40.f, p->getY() - 50.f,
+                                           hasSunTex ? &sunTex : nullptr,
+                                           p->getY() + 5.f));
     }
 
     // sun drops age and expire
@@ -324,9 +329,9 @@ void Game::drawLawn() {
 
             // two shades of green, like a checkerboard
             if ((r + c) % 2 == 0)
-                cell.setFillColor(sf::Color(110, 200, 80));
+                cell.setFillColor(COLOR_LAWN_LIGHT);
             else
-                cell.setFillColor(sf::Color(80, 170, 60));
+                cell.setFillColor(COLOR_LAWN_DARK);
 
             window.draw(cell);
         }
@@ -336,7 +341,7 @@ void Game::drawLawn() {
 void Game::drawTopBar() {
     // brown bar across the top
     sf::RectangleShape bar({static_cast<float>(WINDOW_W), BAR_H});
-    bar.setFillColor(sf::Color(90, 60, 30));
+    bar.setFillColor(COLOR_TOP_BAR);
     window.draw(bar);
 
     // sun counter
@@ -346,14 +351,14 @@ void Game::drawTopBar() {
     window.draw(sunText);
 
     // the three plant cards
-    const char* names[NUM_CARDS] = {"Sunflower", "Peashooter", "Wallnut"};
+    const char* names[NUM_CARDS] = {"Sunflower", "Lipstick\nShooter", "Wallnut"};
 
     for (int i = 0; i < NUM_CARDS; i++) {
         float cx = CARD_X + i * CARD_GAP;
 
         sf::RectangleShape card({CARD_W, CARD_H});
         card.setPosition({cx, CARD_Y});
-        card.setFillColor(sf::Color(230, 215, 150));
+        card.setFillColor(COLOR_CARD);
 
         // red outline on the selected card
         if (i == selectedCard) {
@@ -377,7 +382,7 @@ void Game::drawTopBar() {
     // short message, for example "Not enough sun!"
     if (messageTimer > 0.f) {
         sf::Text msg(font, message, 26);
-        msg.setFillColor(sf::Color(255, 120, 120));
+        msg.setFillColor(sf::Color(255, 235, 130));
         msg.setPosition({520.f, 45.f});
         window.draw(msg);
     }
@@ -398,7 +403,7 @@ void Game::drawCenteredText(const std::string& text, unsigned int size,
 void Game::drawMenu() {
     drawCenteredText("Plants vs Zombies", 72, sf::Color::White, 140.f);
     drawCenteredText("Place your plants and stop the zombies!", 28,
-                     sf::Color(235, 235, 180), 230.f);
+                     COLOR_SUBTITLE, 230.f);
 
     // Play button, lighter when the mouse is over it
     sf::Vector2i m = sf::Mouse::getPosition(window);
@@ -407,17 +412,17 @@ void Game::drawMenu() {
 
     sf::RectangleShape button({PLAY_W, PLAY_H});
     button.setPosition({PLAY_X, PLAY_Y});
-    button.setFillColor(hover ? sf::Color(100, 210, 100) : sf::Color(60, 160, 60));
+    button.setFillColor(hover ? COLOR_BUTTON_HOVER : COLOR_BUTTON);
     button.setOutlineThickness(4.f);
-    button.setOutlineColor(sf::Color(20, 90, 20));
+    button.setOutlineColor(COLOR_BUTTON_OUTLINE);
     window.draw(button);
     drawCenteredText("PLAY", 38, sf::Color::White, PLAY_Y + PLAY_H / 2.f - 4.f);
 
     // short instructions
     drawCenteredText("Click a card, then click the lawn to plant it.  Right-click removes a plant.",
-                     20, sf::Color(220, 220, 220), 510.f);
+                     20, sf::Color::White, 510.f);
     drawCenteredText("Click the suns that sunflowers make to collect them.  Press R to restart.",
-                     20, sf::Color(220, 220, 220), 540.f);
+                     20, sf::Color::White, 540.f);
 }
 
 void Game::drawEndScreen(const std::string& title, sf::Color color) {
@@ -431,7 +436,7 @@ void Game::drawEndScreen(const std::string& title, sf::Color color) {
 }
 
 void Game::draw() {
-    window.clear(sf::Color(30, 110, 30));
+    window.clear(COLOR_BACKGROUND);
 
     if (state == State::Menu) {
         drawMenu();
