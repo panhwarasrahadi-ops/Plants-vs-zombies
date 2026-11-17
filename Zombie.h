@@ -3,12 +3,11 @@
 #include "GameObject.h"
 #include "Constants.h"
 
-// Base class for NormalZombie and ConeheadZombie
 class Zombie : public GameObject {
 protected:
     int row;
-    float speed;            // pixels per second, moving left
-    bool eating = false;    // true while it is chewing on a plant
+    float speed;
+    bool eating = false;
     float biteTimer = 0.f;
 
 public:
@@ -26,7 +25,6 @@ public:
     }
     bool isEating() const { return eating; }
 
-    // returns true once every BITE_INTERVAL seconds while eating
     bool readyToBite(float dt) {
         biteTimer += dt;
         if (biteTimer >= BITE_INTERVAL) {

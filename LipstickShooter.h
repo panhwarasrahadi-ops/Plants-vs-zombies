@@ -1,20 +1,18 @@
 #pragma once
 #include "Plant.h"
 
-class Peashooter : public Plant {
+class LipstickShooter : public Plant {
     static constexpr int MAX_HEALTH = 100;
-    float cooldown = 0.5f;   // seconds until it can shoot again
+    float cooldown = 0.5f;
 
 public:
-    Peashooter(int row, int col, const sf::Texture* texture = nullptr)
+    LipstickShooter(int row, int col, const sf::Texture* texture = nullptr)
         : Plant(row, col, 100, MAX_HEALTH, texture) {}
 
-    // the cooldown counts down every frame
     void update(float dt) override {
         if (cooldown > 0.f) cooldown -= dt;
     }
 
-    // shoots only if a zombie is in its row and the cooldown is over
     bool wantsToShoot(bool zombieInRow) override {
         if (zombieInRow && cooldown <= 0.f) {
             cooldown = SHOOT_COOLDOWN;
@@ -30,7 +28,6 @@ public:
             body.setFillColor(sf::Color(40, 170, 60));
             window.draw(body);
 
-            // the "gun" sticking out to the right
             sf::RectangleShape barrel({25.f, 14.f});
             barrel.setPosition({x + 60.f, y + 38.f});
             barrel.setFillColor(sf::Color(20, 110, 40));

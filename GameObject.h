@@ -2,14 +2,12 @@
 #include <SFML/Graphics.hpp>
 #include <algorithm>
 
-// Abstract base class: every thing on the lawn (plant, zombie, pea) is a GameObject
 class GameObject {
 protected:
-    float x, y;                    // position on the screen
+    float x, y;
     int health;
-    const sf::Texture* texture;    // the picture; nullptr means "no picture, draw a shape"
+    const sf::Texture* texture;  // nullptr = draw a shape instead
 
-    // draws a small red/green health bar; children call this inside their draw()
     void drawHealthBar(sf::RenderWindow& window, int maxHealth,
                        float offsetX, float offsetY, float width) const {
         float ratio = (health > 0) ? static_cast<float>(health) / maxHealth : 0.f;
@@ -25,7 +23,6 @@ protected:
         window.draw(front);
     }
 
-    // draws the picture scaled to fit inside a box; returns false if there is no picture
     bool drawSprite(sf::RenderWindow& window,
                     float boxX, float boxY, float boxW, float boxH) const {
         if (texture == nullptr) return false;
@@ -40,7 +37,6 @@ protected:
 
         sf::Sprite sprite(*texture);
         sprite.setScale({scale, scale});
-        // centred sideways, standing on the bottom of the box
         sprite.setPosition({boxX + (boxW - w) / 2.f, boxY + boxH - h});
         window.draw(sprite);
         return true;
@@ -52,7 +48,7 @@ public:
 
     virtual ~GameObject() {}
 
-    // pure virtual functions: each child class MUST write its own version
+    // every child class must implement these
     virtual void update(float dt) = 0;
     virtual void draw(sf::RenderWindow& window) = 0;
     virtual sf::FloatRect getBounds() const = 0;

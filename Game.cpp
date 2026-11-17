@@ -1,7 +1,7 @@
 #include "Game.h"
 #include "Constants.h"
 #include "Sunflower.h"
-#include "Peashooter.h"
+#include "LipstickShooter.h"
 #include "Wallnut.h"
 #include "NormalZombie.h"
 #include "ConeheadZombie.h"
@@ -9,7 +9,6 @@
 #include <iostream>
 #include <string>
 
-// deletes every dead object in a list and removes it from the list
 template <typename T>
 static void removeDead(std::vector<T*>& list) {
     for (size_t i = 0; i < list.size(); ) {
@@ -29,19 +28,18 @@ Game::Game()
 {
     window.setFramerateLimit(60);
 
-    // load the font once, here in the constructor
     if (!font.openFromFile("C:/Windows/Fonts/arial.ttf"))
         std::cout << "Could not load font\n";
 
-    // load every picture once; if a file is missing the game uses a shape instead
+    // if a picture file is missing, objects draw a plain shape instead
     hasZombieTex = zombieTex.loadFromFile("zombie.png");
     if (!hasZombieTex) std::cout << "zombie.png not found, using a shape\n";
     hasConeheadTex = coneheadTex.loadFromFile("conehead_zombie.png");
     if (!hasConeheadTex) std::cout << "conehead_zombie.png not found, using a shape\n";
     hasSunflowerTex = sunflowerTex.loadFromFile("sunflower.png");
     if (!hasSunflowerTex) std::cout << "sunflower.png not found, using a shape\n";
-    hasPeashooterTex = peashooterTex.loadFromFile("peashooter.png");
-    if (!hasPeashooterTex) std::cout << "peashooter.png not found, using a shape\n";
+    hasLipstickShooterTex = lipstickShooterTex.loadFromFile("lipstick_shooter.png");
+    if (!hasLipstickShooterTex) std::cout << "lipstick_shooter.png not found, using a shape\n";
     hasWallnutTex = wallnutTex.loadFromFile("wallnut.png");
     if (!hasWallnutTex) std::cout << "wallnut.png not found, using a shape\n";
     hasSunTex = sunTex.loadFromFile("sun.png");
@@ -57,7 +55,7 @@ Game::~Game() {
 void Game::clearObjects() {
     for (Plant* p : plants) delete p;
     for (Zombie* z : zombies) delete z;
-    for (Projectile* pea : projectiles) delete pea;
+    for (Projectile* shot : projectiles) delete shot;
     for (SunDrop* d : sunDrops) delete d;
     plants.clear();
     zombies.clear();
@@ -91,7 +89,6 @@ void Game::handleEvents() {
         if (event->is<sf::Event::Closed>())
             window.close();
 
-        // keyboard: Enter starts from the menu, R restarts after a win or loss
         if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
             if (key->code == sf::Keyboard::Key::Enter && state == State::Menu)
                 startGame();
@@ -104,7 +101,6 @@ void Game::handleEvents() {
             float mx = static_cast<float>(click->position.x);
             float my = static_cast<float>(click->position.y);
 
-            // start screen: only the Play button matters
             if (state == State::Menu) {
                 if (click->button == sf::Mouse::Button::Left &&
                     mx >= PLAY_X && mx <= PLAY_X + PLAY_W &&
@@ -113,11 +109,10 @@ void Game::handleEvents() {
                 continue;
             }
 
-            // win / lose screens ignore the mouse
             if (state != State::Playing)
                 continue;
 
-            // turn the click into a lawn row and column (-1 means "not on the lawn")
+            // row and col stay -1 when the click is not on the lawn
             int row = -1, col = -1;
             if (mx >= LAWN_X && my >= LAWN_Y) {
                 int c = static_cast<int>((mx - LAWN_X) / CELL_W);
@@ -129,7 +124,6 @@ void Game::handleEvents() {
             }
 
             if (click->button == sf::Mouse::Button::Left) {
-                // 1) did the player click a sun drop? collect it
                 bool collected = false;
                 for (SunDrop* d : sunDrops) {
                     if (!d->isDead() && d->getBounds().contains({mx, my})) {
@@ -141,7 +135,6 @@ void Game::handleEvents() {
                 }
 
                 if (!collected) {
-                    // 2) did the player click a plant card?
                     for (int i = 0; i < NUM_CARDS; i++) {
                         float cx = CARD_X + i * CARD_GAP;
                         if (mx >= cx && mx <= cx + CARD_W &&
@@ -149,13 +142,11 @@ void Game::handleEvents() {
                             selectedCard = i;
                         }
                     }
-                    // 3) did the player click the lawn?
                     if (row >= 0)
                         placePlant(row, col);
                 }
             }
             else if (click->button == sf::Mouse::Button::Right) {
-                // right click removes the plant in that cell
                 if (row >= 0)
                     removePlant(row, col);
             }
@@ -164,16 +155,13 @@ void Game::handleEvents() {
 }
 
 void Game::placePlant(int row, int col) {
-    // 1) a card must be selected
     if (selectedCard < 0) return;
 
-    // 2) the cell must be empty
     for (Plant* p : plants) {
         if (p->getRow() == row && p->getCol() == col)
             return;
     }
 
-    // 3) there must be enough sun
     int cost = CARD_COSTS[selectedCard];
     if (sun < cost) {
         message = "Not enough sun!";
@@ -181,26 +169,25 @@ void Game::placePlant(int row, int col) {
         return;
     }
 
-    // 4) make the plant that matches the selected card
     Plant* newPlant = nullptr;
     if (selectedCard == 0)
         newPlant = new Sunflower(row, col, hasSunflowerTex ? &sunflowerTex : nullptr);
     else if (selectedCard == 1)
-        newPlant = new Peashooter(row, col, hasPeashooterTex ? &peashooterTex : nullptr);
+        newPlant = new LipstickShooter(row, col, hasLipstickShooterTex ? &lipstickShooterTex : nullptr);
     else if (selectedCard == 2)
         newPlant = new Wallnut(row, col, hasWallnutTex ? &wallnutTex : nullptr);
 
     if (newPlant) {
         plants.push_back(newPlant);
         sun -= cost;
-        selectedCard = -1;   // one click = one plant
+        selectedCard = -1;
     }
 }
 
 void Game::removePlant(int row, int col) {
     for (Plant* p : plants) {
         if (p->getRow() == row && p->getCol() == col)
-            p->takeDamage(p->getHealth());   // it is now dead, update() removes it
+            p->takeDamage(p->getHealth());
     }
 }
 
@@ -223,13 +210,10 @@ void Game::spawnZombie() {
 }
 
 void Game::update(float dt) {
-    // nothing moves on the menu, win or lose screens
     if (state != State::Playing) return;
 
-    // message timer
     if (messageTimer > 0.f) messageTimer -= dt;
 
-    // waves: a new zombie every few seconds, faster in the second half
     if (zombiesSpawned < TOTAL_ZOMBIES) {
         spawnTimer -= dt;
         if (spawnTimer <= 0.f) {
@@ -239,7 +223,6 @@ void Game::update(float dt) {
         }
     }
 
-    // plants: update, shoot, and make sun
     for (Plant* p : plants) {
         p->update(dt);
 
@@ -253,20 +236,17 @@ void Game::update(float dt) {
         }
         if (p->wantsToShoot(zombieInRow))
             projectiles.push_back(new Projectile(p->getRow(), p->getX() + 65.f,
-                                                 PEA_SPEED, PEA_DAMAGE,
+                                                 LIPSTICK_SPEED, LIPSTICK_DAMAGE,
                                                  hasLipstickTex ? &lipstickTex : nullptr));
 
         if (p->wantsToProduceSun())
-            // the sun falls straight down into the sunflower's own cell
             sunDrops.push_back(new SunDrop(p->getX() + 40.f, p->getY() - 50.f,
                                            hasSunTex ? &sunTex : nullptr,
                                            p->getY() + 5.f));
     }
 
-    // sun drops age and expire
     for (SunDrop* d : sunDrops) d->update(dt);
 
-    // zombies: stop and eat a plant that is in front of them, otherwise walk
     for (Zombie* z : zombies) {
         Plant* target = nullptr;
         for (Plant* p : plants) {
@@ -283,30 +263,28 @@ void Game::update(float dt) {
         if (target && z->readyToBite(dt))
             target->takeDamage(BITE_DAMAGE);
 
-        // a zombie reached the house: the player loses
         if (z->getX() < LAWN_X - 30.f)
             state = State::Lost;
     }
 
-    // peas: fly right and hurt the first zombie they touch
-    for (Projectile* pea : projectiles) {
-        pea->update(dt);
+    for (Projectile* shot : projectiles) {
+        shot->update(dt);
 
         for (Zombie* z : zombies) {
             if (z->isDead()) continue;
-            if (z->getRow() == pea->getRow() &&
-                pea->getBounds().findIntersection(z->getBounds()).has_value()) {
-                z->takeDamage(pea->getDamage());
-                pea->takeDamage(1);   // the pea is used up
+            if (z->getRow() == shot->getRow() &&
+                shot->getBounds().findIntersection(z->getBounds()).has_value()) {
+                z->takeDamage(shot->getDamage());
+                shot->takeDamage(1);
                 break;
             }
         }
 
-        if (pea->getX() > WINDOW_W)
-            pea->takeDamage(1);       // flew off the screen
+        if (shot->getX() > WINDOW_W)
+            shot->takeDamage(1);
     }
 
-    // count the zombies that died this frame, then remove everything dead
+    // dead objects are removed only here, after every loop above has finished
     for (Zombie* z : zombies)
         if (z->isDead()) zombiesKilled++;
 
@@ -315,7 +293,6 @@ void Game::update(float dt) {
     removeDead(projectiles);
     removeDead(sunDrops);
 
-    // every zombie has appeared and none are left: the player wins
     if (state == State::Playing &&
         zombiesSpawned >= TOTAL_ZOMBIES && zombies.empty())
         state = State::Won;
@@ -327,7 +304,6 @@ void Game::drawLawn() {
             sf::RectangleShape cell({CELL_W, CELL_H});
             cell.setPosition({LAWN_X + c * CELL_W, LAWN_Y + r * CELL_H});
 
-            // two shades of green, like a checkerboard
             if ((r + c) % 2 == 0)
                 cell.setFillColor(COLOR_LAWN_LIGHT);
             else
@@ -339,18 +315,15 @@ void Game::drawLawn() {
 }
 
 void Game::drawTopBar() {
-    // brown bar across the top
     sf::RectangleShape bar({static_cast<float>(WINDOW_W), BAR_H});
     bar.setFillColor(COLOR_TOP_BAR);
     window.draw(bar);
 
-    // sun counter
     sf::Text sunText(font, "Sun: " + std::to_string(sun), 28);
     sunText.setFillColor(sf::Color::White);
     sunText.setPosition({20.f, 40.f});
     window.draw(sunText);
 
-    // the three plant cards
     const char* names[NUM_CARDS] = {"Sunflower", "Lipstick\nShooter", "Wallnut"};
 
     for (int i = 0; i < NUM_CARDS; i++) {
@@ -360,7 +333,6 @@ void Game::drawTopBar() {
         card.setPosition({cx, CARD_Y});
         card.setFillColor(COLOR_CARD);
 
-        // red outline on the selected card
         if (i == selectedCard) {
             card.setOutlineThickness(4.f);
             card.setOutlineColor(sf::Color::Red);
@@ -373,13 +345,11 @@ void Game::drawTopBar() {
         window.draw(label);
     }
 
-    // how many zombies are still to be killed
     sf::Text left(font, "Zombies left: " + std::to_string(TOTAL_ZOMBIES - zombiesKilled), 22);
     left.setFillColor(sf::Color::White);
     left.setPosition({760.f, 45.f});
     window.draw(left);
 
-    // short message, for example "Not enough sun!"
     if (messageTimer > 0.f) {
         sf::Text msg(font, message, 26);
         msg.setFillColor(sf::Color(255, 235, 130));
@@ -393,7 +363,7 @@ void Game::drawCenteredText(const std::string& text, unsigned int size,
     sf::Text t(font, text, size);
     t.setFillColor(color);
 
-    // move the text's origin to its own centre, then place it in the middle of the window
+    // centre the text horizontally in the window
     sf::FloatRect b = t.getLocalBounds();
     t.setOrigin({b.position.x + b.size.x / 2.f, b.position.y + b.size.y / 2.f});
     t.setPosition({WINDOW_W / 2.f, y});
@@ -405,7 +375,6 @@ void Game::drawMenu() {
     drawCenteredText("Place your plants and stop the zombies!", 28,
                      COLOR_SUBTITLE, 230.f);
 
-    // Play button, lighter when the mouse is over it
     sf::Vector2i m = sf::Mouse::getPosition(window);
     bool hover = m.x >= PLAY_X && m.x <= PLAY_X + PLAY_W &&
                  m.y >= PLAY_Y && m.y <= PLAY_Y + PLAY_H;
@@ -418,7 +387,6 @@ void Game::drawMenu() {
     window.draw(button);
     drawCenteredText("PLAY", 38, sf::Color::White, PLAY_Y + PLAY_H / 2.f - 4.f);
 
-    // short instructions
     drawCenteredText("Click a card, then click the lawn to plant it.  Right-click removes a plant.",
                      20, sf::Color::White, 510.f);
     drawCenteredText("Click the suns that sunflowers make to collect them.  Press R to restart.",
@@ -426,7 +394,6 @@ void Game::drawMenu() {
 }
 
 void Game::drawEndScreen(const std::string& title, sf::Color color) {
-    // dark see-through layer over the whole game
     sf::RectangleShape overlay({static_cast<float>(WINDOW_W), static_cast<float>(WINDOW_H)});
     overlay.setFillColor(sf::Color(0, 0, 0, 170));
     window.draw(overlay);
@@ -446,10 +413,9 @@ void Game::draw() {
 
     drawLawn();
 
-    // everything on the lawn goes under the top bar
     for (Plant* p : plants) p->draw(window);
     for (Zombie* z : zombies) z->draw(window);
-    for (Projectile* pea : projectiles) pea->draw(window);
+    for (Projectile* shot : projectiles) shot->draw(window);
     for (SunDrop* d : sunDrops) d->draw(window);
 
     drawTopBar();

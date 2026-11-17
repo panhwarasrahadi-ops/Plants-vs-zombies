@@ -3,12 +3,11 @@
 #include "GameObject.h"
 #include "Constants.h"
 
-// A lipstick shot by a Peashooter. It flies right until it hits a zombie or leaves the screen.
 class Projectile : public GameObject {
 protected:
     int row;
     int damage;
-    float speed;    // pixels per second, moving right
+    float speed;
 
 public:
     Projectile(int row, float startX, float speed, int damage,
@@ -21,14 +20,13 @@ public:
     }
 
     void draw(sf::RenderWindow& window) override {
-        // picture if we have one, otherwise a green circle
         if (!drawSprite(window, x, y - 6.f, 40.f, 30.f)) {
-            sf::CircleShape pea(9.f);
-            pea.setPosition({x, y});
-            pea.setFillColor(sf::Color(90, 210, 70));
-            pea.setOutlineThickness(2.f);
-            pea.setOutlineColor(sf::Color(20, 100, 20));
-            window.draw(pea);
+            sf::CircleShape dot(9.f);
+            dot.setPosition({x, y});
+            dot.setFillColor(sf::Color(90, 210, 70));
+            dot.setOutlineThickness(2.f);
+            dot.setOutlineColor(sf::Color(20, 100, 20));
+            window.draw(dot);
         }
     }
 

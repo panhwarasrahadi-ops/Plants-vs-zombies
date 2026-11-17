@@ -3,7 +3,6 @@
 #include "GameObject.h"
 #include "Constants.h"
 
-// Base class for Sunflower, Peashooter and Wallnut
 class Plant : public GameObject {
 protected:
     int row, col;
@@ -14,8 +13,7 @@ public:
         : GameObject(LAWN_X + col * CELL_W, LAWN_Y + row * CELL_H, health, texture),
           row(row), col(col), cost(cost) {}
 
-    // Game asks every plant these two questions each frame.
-    // Most plants answer "no"; Peashooter overrides the first, Sunflower the second.
+    // Game asks every plant these two questions each frame; the default answer is no
     virtual bool wantsToShoot(bool /*zombieInRow*/) { return false; }
     virtual bool wantsToProduceSun() { return false; }
 

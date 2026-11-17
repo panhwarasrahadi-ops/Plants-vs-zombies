@@ -2,7 +2,7 @@
 #include "Plant.h"
 
 class Wallnut : public Plant {
-    static constexpr int MAX_HEALTH = 400;   // much more health than the other plants
+    static constexpr int MAX_HEALTH = 400;
 
 public:
     Wallnut(int row, int col, const sf::Texture* texture = nullptr)

@@ -11,14 +11,13 @@
 class Game {
 public:
     Game();
-    ~Game();                               // frees every object
-    Game(const Game&) = delete;            // a Game must not be copied
-    Game& operator=(const Game&) = delete; // (it owns raw pointers)
+    ~Game();
+    Game(const Game&) = delete;  // Game owns raw pointers, so it must not be copied
+    Game& operator=(const Game&) = delete;
 
     void run();
 
 private:
-    // which screen the game is on
     enum class State { Menu, Playing, Won, Lost };
 
     void handleEvents();
@@ -31,40 +30,38 @@ private:
     void drawCenteredText(const std::string& text, unsigned int size,
                           sf::Color color, float y);
 
-    void startGame();       // resets everything and starts a fresh game
-    void clearObjects();    // deletes all plants, zombies, peas and suns
+    void startGame();
+    void clearObjects();
     void placePlant(int row, int col);
     void removePlant(int row, int col);
     void spawnZombie();
 
     sf::RenderWindow window;
     sf::Font font;
-    int sun;            // current sun amount
-    int selectedCard;   // -1 means no card selected
+    int sun;
+    int selectedCard;  // -1 = no card selected
     State state = State::Menu;
 
-    // pictures, loaded once in the constructor and shared by all objects
-    sf::Texture zombieTex, coneheadTex, sunflowerTex, peashooterTex, wallnutTex, sunTex,
+    sf::Texture zombieTex, coneheadTex, sunflowerTex, lipstickShooterTex, wallnutTex, sunTex,
                 lipstickTex;
     bool hasZombieTex = false;
     bool hasConeheadTex = false;
     bool hasSunflowerTex = false;
-    bool hasPeashooterTex = false;
+    bool hasLipstickShooterTex = false;
     bool hasWallnutTex = false;
     bool hasSunTex = false;
     bool hasLipstickTex = false;
 
-    std::vector<Plant*> plants;          // Plant* so different plant types fit in one list
-    std::vector<Zombie*> zombies;        // Zombie* so Normal and Conehead fit in one list
+    std::vector<Plant*> plants;  // base-class pointers, so one list holds every plant type
+    std::vector<Zombie*> zombies;
     std::vector<Projectile*> projectiles;
     std::vector<SunDrop*> sunDrops;
 
-    float spawnTimer = 5.f;              // seconds until the next zombie appears
-    float skyTimer = 4.f;                // seconds until the next sun falls from the sky
+    float spawnTimer = 5.f;
     int zombiesSpawned = 0;
     int zombiesKilled = 0;
     std::mt19937 rng{std::random_device{}()};
 
-    std::string message;                 // short message shown in the top bar
+    std::string message;
     float messageTimer = 0.f;
 };
